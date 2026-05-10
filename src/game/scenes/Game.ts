@@ -427,7 +427,7 @@ export class GameScene extends Scene {
         // Restore grid state
         this.grid[arrow.row][arrow.col] = arrow;
         this.arrowsLeft++;
-        this.moveCount  = Math.max(0, this.moveCount - 1);
+        this.moveCount--;
         this.movesText.setText(`Moves: ${this.moveCount}`);
 
         // Re-draw the arrow sprite
