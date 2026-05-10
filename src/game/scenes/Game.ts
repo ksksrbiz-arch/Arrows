@@ -1,4 +1,4 @@
-import { Scene } from 'phaser';
+import { Geom, Math as PhaserMath, Scene } from 'phaser';
 import { Arrow, Direction } from '../Arrow';
 import { LEVELS, LevelDef } from '../LevelData';
 import { drawArrowShape } from './Preloader';
@@ -179,11 +179,11 @@ export class GameScene extends Scene {
 
             // Make the cell interactive
             gfx.setInteractive(
-                new Phaser.Geom.Rectangle(
+                new Geom.Rectangle(
                     -this.cellSize / 2, -this.cellSize / 2,
                     this.cellSize, this.cellSize,
                 ),
-                Phaser.Geom.Rectangle.Contains,
+                Geom.Rectangle.Contains,
             );
 
             arrow.gfx = gfx;
@@ -525,7 +525,7 @@ export class GameScene extends Scene {
         const SIZE     = 4;
         for (let i = 0; i < COUNT; i++) {
             const angle  = (i / COUNT) * Math.PI * 2;
-            const speed  = Phaser.Math.Between(40, 80);
+            const speed  = PhaserMath.Between(40, 80);
             const dot    = this.add.graphics();
             dot.fillStyle(color, 1);
             dot.fillCircle(0, 0, SIZE);
