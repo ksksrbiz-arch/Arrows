@@ -1,12 +1,15 @@
 import { Math as PhaserMath, Scene } from 'phaser';
-import { getGameMode } from '../GameMode';
-import { LEVELS } from '../LevelData';
+import { GameSceneDataLike, getGameMode } from '../GameMode';
 
-interface LevelCompleteData {
+interface LevelCompleteData extends GameSceneDataLike {
     levelIndex: number;
     modeId?: string;
     stars: number;
     moves: number;
+    summary?: string;
+    score?: number;
+    highScore?: number;
+    nextData?: GameSceneDataLike;
 }
 
 /**
@@ -22,9 +25,9 @@ export class LevelComplete extends Scene {
         const W = this.scale.width;
         const H = this.scale.height;
 
-        const { levelIndex, modeId, stars, moves } = data;
-        const isLastLevel = levelIndex >= LEVELS.length - 1;
+        const { levelIndex, modeId, stars, moves, nextData } = data;
         const mode = getGameMode(modeId);
+        const modeLevel = mode.resolveLevel(data);
 
         // ── Dark overlay ──────────────────────────────────────────────────────
         const bg = this.add.graphics();
@@ -76,14 +79,13 @@ export class LevelComplete extends Scene {
         });
 
         // ── Stats ─────────────────────────────────────────────────────────────
-        const levelDef = LEVELS[levelIndex];
         this.add.text(W / 2, panelY + 160, `Moves: ${moves}`, {
             fontFamily: 'Arial',
             fontSize: '18px',
             color: '#5D6D7E',
         }).setOrigin(0.5);
 
-        const heartMsg = this.getHeartMessage(!!levelDef, mode.infiniteHearts, mode.allowUndo, stars);
+        const heartMsg = data.summary ?? this.getHeartMessage(mode.infiniteHearts, mode.allowUndo, stars);
         this.add.text(W / 2, panelY + 186, heartMsg, {
             fontFamily: 'Arial',
             fontSize: '15px',
@@ -93,8 +95,9 @@ export class LevelComplete extends Scene {
         // ── Buttons ───────────────────────────────────────────────────────────
         const btnY = panelY + 234;
 
-        if (!isLastLevel) {
-            const nextBtn = this.add.text(W / 2 + 10, btnY, 'Next Level ▶', {
+        if (nextData) {
+            const nextLabel = mode.kind === 'endless' ? 'Next Board ▶' : mode.kind === 'daily' ? 'Previous Daily ▶' : 'Next Level ▶';
+            const nextBtn = this.add.text(W / 2 + 10, btnY, nextLabel, {
                 fontFamily: 'Arial Black, Arial',
                 fontSize: '20px',
                 color: '#FFFFFF',
@@ -103,13 +106,13 @@ export class LevelComplete extends Scene {
             }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
 
             nextBtn.on('pointerdown', () => {
-                this.scene.start('Game', { levelIndex: levelIndex + 1, modeId: mode.id });
+                this.scene.start('Game', { ...nextData, modeId: mode.id });
             });
             nextBtn.on('pointerover',  () => nextBtn.setStyle({ backgroundColor: '#7FB3D5' }));
             nextBtn.on('pointerout',   () => nextBtn.setStyle({ backgroundColor: mode.accent }));
         } else {
             // Last level completed!
-            this.add.text(W / 2, btnY, '🎉 All levels complete!', {
+            this.add.text(W / 2, btnY, mode.kind === 'campaign' ? '🎉 All levels complete!' : '🎉 Puzzle complete!', {
                 fontFamily: 'Arial Black, Arial',
                 fontSize: '18px',
                 color: '#F1C40F',
@@ -134,7 +137,7 @@ export class LevelComplete extends Scene {
             fontSize: '14px',
             color: '#AEB6BF',
         }).setOrigin(0.5).setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => { this.scene.start('Game', { levelIndex, modeId: mode.id }); });
+            .on('pointerdown', () => { this.scene.start('Game', { ...modeLevel.context, levelIndex, modeId: mode.id }); });
 
         // ── Celebration particles ─────────────────────────────────────────────
         this.time.delayedCall(200, () => this.celebrate());
@@ -166,11 +169,7 @@ export class LevelComplete extends Scene {
         }
     }
 
-    private getHeartMessage(hasLevel: boolean, infiniteHearts: boolean, allowUndo: boolean, stars: number): string {
-        if (!hasLevel) {
-            return '';
-        }
-
+    private getHeartMessage(infiniteHearts: boolean, allowUndo: boolean, stars: number): string {
         if (infiniteHearts) {
             return 'Zen clear: no hearts were consumed.';
         }
