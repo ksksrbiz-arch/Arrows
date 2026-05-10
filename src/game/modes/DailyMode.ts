@@ -17,8 +17,10 @@ export function getTodayKey(date = new Date()): string {
     return date.toISOString().slice(0, 10);
 }
 
-function addDays(dateKey: string, days: number): string {
-    const date = parseDateKey(dateKey) ?? new Date(`${getTodayKey()}T00:00:00.000Z`);
+function addDays(dateKey: string, days: number): string | null {
+    const date = parseDateKey(dateKey);
+    if (!date) return null;
+
     date.setUTCDate(date.getUTCDate() + days);
     return getTodayKey(date);
 }
@@ -114,15 +116,18 @@ export const DailyMode: GameMode = {
         }
 
         if (isToday && stars === 3 && state.lastPerfectDate !== dateKey) {
-            state.streak = state.lastPerfectDate === addDays(dateKey, -1) ? state.streak + 1 : 1;
+            const previousDate = addDays(dateKey, -1);
+            const hasValidPreviousPerfect = parseDateKey(state.lastPerfectDate) !== null && state.lastPerfectDate === previousDate;
+            state.streak = hasValidPreviousPerfect ? state.streak + 1 : 1;
             state.lastPerfectDate = dateKey;
         }
 
         writeDailyState(state);
+        const previousDaily = addDays(dateKey, -1);
 
         return {
             stars,
-            nextData: { modeId: this.id, dateKey: addDays(dateKey, -1) },
+            nextData: previousDaily ? { modeId: this.id, dateKey: previousDaily } : undefined,
             summary: `Daily ${dateKey} complete • Perfect streak: ${state.streak}`,
         };
     },

@@ -29,7 +29,10 @@ export function readJson<T>(key: string, fallback: T): T {
         if (raw === null) return fallback;
 
         const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !fallback || typeof fallback !== 'object') {
+        if (
+            !parsed || typeof parsed !== 'object' || Array.isArray(parsed)
+            || !fallback || typeof fallback !== 'object' || Array.isArray(fallback)
+        ) {
             return fallback;
         }
 
