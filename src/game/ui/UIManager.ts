@@ -20,6 +20,7 @@ export class UIManager {
     private statusText!: GameObjects.Text;
     private undoBtn!: GameObjects.Text;
     private extraTexts: GameObjects.Text[] = [];
+    private heartSignature = '';
 
     constructor(scene: Scene, mode: GameMode, level: ModeLevel) {
         this.scene = scene;
@@ -37,7 +38,7 @@ export class UIManager {
 
     update(engine: BasePuzzleEngine, elapsedMs: number): void {
         this.movesText.setText(`Moves: ${engine.moveCount}`);
-        this.renderHearts(engine);
+        this.renderHearts(engine, true);
         const extra = this.mode.getExtraHud(this.level, engine, elapsedMs);
         this.extraTexts.forEach((text, index) => text.setText(extra[index] ?? ''));
     }
@@ -143,7 +144,11 @@ export class UIManager {
         }).setOrigin(0.5);
     }
 
-    private renderHearts(engine: BasePuzzleEngine): void {
+    private renderHearts(engine: BasePuzzleEngine, force = false): void {
+        const signature = `${engine.infiniteHearts}:${engine.hearts}:${engine.startingHearts}`;
+        if (!force && signature === this.heartSignature) return;
+
+        this.heartSignature = signature;
         const width = this.scene.scale.width;
         this.heartTexts.forEach((text) => text.destroy());
         this.heartTexts = [];
