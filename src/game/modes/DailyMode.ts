@@ -10,6 +10,7 @@ interface DailyState {
 
 const DAILY_STATE_KEY = storageKey('daily_state');
 const EMPTY_DAILY_STATE: DailyState = { completed: [], streak: 0, lastPerfectDate: '' };
+const MAX_COMPLETED_HISTORY = 400;
 
 export function getTodayKey(date = new Date()): string {
     return date.toISOString().slice(0, 10);
@@ -23,11 +24,15 @@ function addDays(dateKey: string, days: number): string {
 
 function readDailyState(): DailyState {
     const state = readJson<DailyState>(DAILY_STATE_KEY, EMPTY_DAILY_STATE);
-    return { ...state, completed: Array.isArray(state.completed) ? state.completed.slice(0, 400) : [] };
+    return { ...state, completed: Array.isArray(state.completed) ? state.completed.slice(-MAX_COMPLETED_HISTORY) : [] };
 }
 
 function writeDailyState(state: DailyState): void {
-    writeJson(DAILY_STATE_KEY, { ...state, completed: state.completed.slice(-400) });
+    writeJson(DAILY_STATE_KEY, { ...state, completed: state.completed.slice(-MAX_COMPLETED_HISTORY) });
+}
+
+function getDateId(dateKey: string): number {
+    return Math.floor(new Date(`${dateKey}T00:00:00.000Z`).getTime() / 86_400_000);
 }
 
 export const DailyMode: GameMode = {
@@ -67,7 +72,7 @@ export const DailyMode: GameMode = {
         const dateKey = data.dateKey ?? getTodayKey();
         const levelDef = PuzzleGenerator.generate({
             seed: `daily:${dateKey}`,
-            id: Number(dateKey.replace(/-/g, '').slice(2)),
+            id: getDateId(dateKey),
             title: `Daily ${dateKey}`,
             gridSize: 6,
             hearts: 3,

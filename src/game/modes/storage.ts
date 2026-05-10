@@ -26,7 +26,10 @@ export function writeNumber(key: string, value: number): void {
 export function readJson<T>(key: string, fallback: T): T {
     try {
         const raw = localStorage.getItem(key);
-        return raw === null ? fallback : { ...fallback, ...JSON.parse(raw) };
+        if (raw === null) return fallback;
+
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? { ...fallback, ...parsed } : fallback;
     } catch {
         return fallback;
     }

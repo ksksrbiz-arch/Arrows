@@ -261,6 +261,6 @@ export class MainMenu extends Scene {
 
     private getInitialModeId(): string {
         const modeFromUrl = new URLSearchParams(window.location.search).get('mode');
-        return GAME_MODES.some((mode) => mode.id === modeFromUrl) ? modeFromUrl ?? DEFAULT_MODE_ID : DEFAULT_MODE_ID;
+        return GAME_MODES.some((mode) => mode.id === modeFromUrl) ? modeFromUrl as string : DEFAULT_MODE_ID;
     }
 }

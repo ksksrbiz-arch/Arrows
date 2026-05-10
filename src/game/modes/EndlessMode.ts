@@ -4,9 +4,10 @@ import { CompletionResult, FailureOutcome, GameMode, GameSceneDataLike, MenuStat
 import { readNumber, storageKey, writeNumber } from './storage';
 
 const HIGH_SCORE_KEY = storageKey('endless_high_score');
+const MAX_RANDOM_SEED_COMPONENT = 0xFFFFFF;
 
 function createRunSeed(): string {
-    return `${Date.now().toString(36)}-${Math.floor(Math.random() * 0xFFFFFF).toString(36)}`;
+    return `${Date.now().toString(36)}-${Math.floor(Math.random() * MAX_RANDOM_SEED_COMPONENT).toString(36)}`;
 }
 
 function getDifficulty(level: number): { gridSize: number; density: number; tier: string } {
