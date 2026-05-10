@@ -44,7 +44,7 @@ function parseDateKey(dateKey: string): Date | null {
     if (!DATE_KEY_PATTERN.test(dateKey)) return null;
 
     const date = new Date(`${dateKey}T00:00:00.000Z`);
-    return Number.isNaN(date.getTime()) || getTodayKey(date) !== dateKey ? null : date;
+    return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== dateKey ? null : date;
 }
 
 export const DailyMode: GameMode = {

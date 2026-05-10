@@ -25,6 +25,8 @@ export function writeNumber(key: string, value: number): void {
 
 export function readJson<T>(key: string, fallback: T): T {
     try {
+        if (!fallback) return fallback;
+
         const raw = localStorage.getItem(key);
         if (raw === null) return fallback;
 

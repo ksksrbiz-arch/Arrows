@@ -5,11 +5,12 @@ import { readNumber, storageKey, writeNumber } from './storage';
 
 const HIGH_SCORE_KEY = storageKey('endless_high_score');
 const MAX_RANDOM_SEED_COMPONENT = 0xFFFFFF;
+const fallbackSeedSession = `${Date.now().toString(36)}-${Math.floor(performance.timeOrigin).toString(36)}`;
 let fallbackSeedCounter = 0;
 
 function createRunSeed(): string {
     return globalThis.crypto?.randomUUID?.()
-        ?? `${Date.now().toString(36)}-${fallbackSeedCounter++}-${getRandomSeedComponent().toString(36)}`;
+        ?? `${fallbackSeedSession}-${Date.now().toString(36)}-${fallbackSeedCounter++}-${getRandomSeedComponent().toString(36)}`;
 }
 
 function getRandomSeedComponent(): number {

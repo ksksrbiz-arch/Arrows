@@ -15,7 +15,7 @@ export class SeededRandom {
     }
 
     int(min: number, max: number): number {
-        return Math.floor(this.next() * (max - min + 1)) + min;
+        return Math.min(max, Math.floor(this.next() * (max - min + 1)) + min);
     }
 
     pick<T>(items: readonly T[]): T {

@@ -1,6 +1,6 @@
 import { LEVELS } from '../LevelData';
 import { CompletionResult, FailureOutcome, GameMode, GameSceneDataLike, MenuState, ModeLevel } from './types';
-import { readNumber, removeKey, writeNumber } from './storage';
+import { removeKey, writeNumber } from './storage';
 
 const LEGACY_PROGRESS_KEY = 'arrows_level_classic';
 
@@ -9,8 +9,9 @@ export function getModeProgressStorageKey(modeId: string): string {
 }
 
 export function getSavedLevelForMode(modeId: string, totalLevels: number): number {
-    const saved = readNumber(getModeProgressStorageKey(modeId), readNumber(LEGACY_PROGRESS_KEY, 0));
-    return saved >= 0 && saved < totalLevels ? saved : 0;
+    const saved = readStoredLevel(getModeProgressStorageKey(modeId));
+    const legacySaved = saved ?? readStoredLevel(LEGACY_PROGRESS_KEY) ?? 0;
+    return legacySaved >= 0 && legacySaved < totalLevels ? legacySaved : 0;
 }
 
 export function saveLevelForMode(modeId: string, levelIndex: number): void {
@@ -19,6 +20,18 @@ export function saveLevelForMode(modeId: string, levelIndex: number): void {
 
 export function clearSavedLevelForMode(modeId: string): void {
     removeKey(getModeProgressStorageKey(modeId));
+}
+
+function readStoredLevel(key: string): number | null {
+    try {
+        const raw = localStorage.getItem(key);
+        if (raw === null) return null;
+
+        const value = Number(raw);
+        return Number.isFinite(value) ? value : null;
+    } catch {
+        return null;
+    }
 }
 
 export const ClassicMode: GameMode = {
