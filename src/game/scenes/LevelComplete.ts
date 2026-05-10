@@ -1,4 +1,4 @@
-import { Scene } from 'phaser';
+import { Math as PhaserMath, Scene } from 'phaser';
 import { LEVELS } from '../LevelData';
 
 interface LevelCompleteData {
@@ -137,19 +137,19 @@ export class LevelComplete extends Scene {
 
         for (let i = 0; i < 30; i++) {
             this.time.delayedCall(i * 50, () => {
-                const x   = Phaser.Math.Between(60, W - 60);
+                const x   = PhaserMath.Between(60, W - 60);
                 const dot = this.add.graphics();
-                dot.fillStyle(Phaser.Math.RND.pick(colors), 1);
-                dot.fillCircle(0, 0, Phaser.Math.Between(4, 8));
+                dot.fillStyle(PhaserMath.RND.pick(colors), 1);
+                dot.fillCircle(0, 0, PhaserMath.Between(4, 8));
                 dot.x = x;
                 dot.y = -10;
 
                 this.tweens.add({
                     targets: dot,
                     y:       this.scale.height + 20,
-                    x:       x + Phaser.Math.Between(-60, 60),
+                    x:       x + PhaserMath.Between(-60, 60),
                     alpha:   { from: 1, to: 0 },
-                    duration: Phaser.Math.Between(900, 1600),
+                    duration: PhaserMath.Between(900, 1600),
                     ease: 'Cubic.easeIn',
                     onComplete: () => dot.destroy(),
                 });
