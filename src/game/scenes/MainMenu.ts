@@ -35,6 +35,7 @@ interface ModeCard {
 export class MainMenu extends Scene {
     private titleText!: GameObjects.Text;
     private selectedModeId = DEFAULT_MODE_ID;
+    private selectedMode: GameMode = getGameMode(DEFAULT_MODE_ID);
     private modeCards: ModeCard[] = [];
     private actionButton!: GameObjects.Text;
     private actionHint!: GameObjects.Text;
@@ -97,7 +98,7 @@ export class MainMenu extends Scene {
 
         this.actionButton.on('pointerdown', () => this.startSelectedMode());
         this.actionButton.on('pointerover', () => this.actionButton.setStyle({ backgroundColor: '#85C1E9' }));
-        this.actionButton.on('pointerout', () => this.actionButton.setStyle({ backgroundColor: getGameMode(this.selectedModeId).accent }));
+        this.actionButton.on('pointerout', () => this.actionButton.setStyle({ backgroundColor: this.selectedMode.accent }));
 
         this.actionHint = this.add.text(W / 2, 518, '', {
             fontFamily: 'Arial',
@@ -175,7 +176,7 @@ export class MainMenu extends Scene {
             color: '#F8FBFF',
         });
 
-        const meta = this.add.text(x + CARD_INSET_X, y + 54, this.getModeMeta(mode), {
+        const meta = this.add.text(x + CARD_INSET_X, y + 54, mode.meta, {
             fontFamily: 'Arial',
             fontSize: '14px',
             color: '#D6EAF8',
@@ -197,12 +198,13 @@ export class MainMenu extends Scene {
 
     private selectMode(modeId: string): void {
         this.selectedModeId = modeId;
+        this.selectedMode = getGameMode(modeId);
         this.modeCards.forEach((card) => this.drawModeCard(card, card.mode.id === modeId));
         this.refreshActionState();
     }
 
     private refreshActionState(): void {
-        const mode = getGameMode(this.selectedModeId);
+        const mode = this.selectedMode;
         const savedLevel = getSavedLevelForMode(mode.id, LEVELS.length);
         const hasProgress = savedLevel > 0;
 
@@ -247,18 +249,6 @@ export class MainMenu extends Scene {
         meta.setColor(selected ? '#FDFEFE' : '#A9CCE3');
         body.setColor(selected ? '#F8F9F9' : '#D5DBDB');
         box.setAlpha(1);
-    }
-
-    private getModeMeta(mode: GameMode): string {
-        if (mode.infiniteHearts) {
-            return '∞ hearts • undo on';
-        }
-
-        if (!mode.allowUndo) {
-            return 'reduced hearts (min 1) • undo off';
-        }
-
-        return 'standard hearts • undo on';
     }
 
     private addDecorativeArrow(x: number, y: number, char: string, color: string): void {

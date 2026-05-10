@@ -685,7 +685,7 @@ export class GameScene extends Scene {
             return this.levelDef.hearts;
         }
 
-        // Challenge mode always leaves at least one heart so every level remains playable.
+        // Modes that reduce hearts still leave at least one so every level remains playable.
         return Math.max(1, this.levelDef.hearts + this.mode.heartsDelta);
     }
 }

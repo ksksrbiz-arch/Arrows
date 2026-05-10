@@ -3,6 +3,7 @@ export interface GameMode {
     label: string;
     shortLabel: string;
     description: string;
+    meta: string;
     accent: string;
     accentColor: number;
     heartsDelta: number;
@@ -16,6 +17,7 @@ export const GAME_MODES: GameMode[] = [
         label: 'Classic',
         shortLabel: 'Classic',
         description: 'The original campaign with full hearts and undo support.',
+        meta: 'standard hearts • undo on',
         accent: '#5DADE2',
         accentColor: 0x5DADE2,
         heartsDelta: 0,
@@ -27,6 +29,7 @@ export const GAME_MODES: GameMode[] = [
         label: 'Zen',
         shortLabel: 'Zen',
         description: 'A no-pressure run with unlimited mistakes for relaxed play.',
+        meta: '∞ hearts • undo on',
         accent: '#58D68D',
         accentColor: 0x58D68D,
         heartsDelta: 0,
@@ -38,6 +41,7 @@ export const GAME_MODES: GameMode[] = [
         label: 'Challenge',
         shortLabel: 'Challenge',
         description: 'Reduced hearts (never below 1) and no undo for a sharper run.',
+        meta: 'reduced hearts (min 1) • undo off',
         accent: '#F5B041',
         accentColor: 0xF5B041,
         heartsDelta: -1,
