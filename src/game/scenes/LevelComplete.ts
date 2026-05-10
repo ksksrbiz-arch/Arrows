@@ -83,7 +83,7 @@ export class LevelComplete extends Scene {
             color: '#5D6D7E',
         }).setOrigin(0.5);
 
-        const heartMsg = this.getHeartMessage(Boolean(levelDef), mode.infiniteHearts, mode.allowUndo, stars);
+        const heartMsg = this.getHeartMessage(!!levelDef, mode.infiniteHearts, mode.allowUndo, stars);
         this.add.text(W / 2, panelY + 186, heartMsg, {
             fontFamily: 'Arial',
             fontSize: '15px',

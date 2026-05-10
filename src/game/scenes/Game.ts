@@ -18,6 +18,16 @@ const CELL_COLOR_B  = 0xF0F3F4;
 const GRID_LINE     = 0xD5D8DC;
 const GRID_SHADOW   = 0xBFC9CA;
 const BG_COLOR      = '#EBF5FB';
+const DEFAULT_STATUS = 'Choose a free arrow to slide it off the board.';
+const ZEN_STATUS = 'Zen mode: explore freely without losing hearts.';
+const CLEAR_PATH_STATUS = 'Clear lane - this arrow can exit now.';
+const BLOCKED_PATH_STATUS = 'Blocked lane - clear the obstacle first.';
+const EMPTY_CELL_STATUS = 'Empty cell - hover an arrow to preview its exit path.';
+const SUCCESS_STATUS = 'Nice move - keep peeling the board apart.';
+const ZEN_BLOCKED_STATUS = 'Blocked lane, but Zen mode keeps the run alive.';
+const HEART_LOSS_STATUS = 'Blocked path - you lost a heart.';
+const GAME_OVER_STATUS = 'No hearts left - level failed.';
+const UNDO_STATUS = 'Last move restored.';
 
 // ── Scene data passed via scene.start ────────────────────────────────────────
 
@@ -75,9 +85,7 @@ export class GameScene extends Scene {
         this.levelIndex  = data?.levelIndex ?? 0;
         this.levelDef    = LEVELS[this.levelIndex] ?? LEVELS[0];
         this.mode        = getGameMode(data?.modeId);
-        this.startingHearts = this.mode.infiniteHearts
-            ? Number.POSITIVE_INFINITY
-            : Math.max(1, this.levelDef.hearts + this.mode.heartsDelta);
+        this.startingHearts = Math.max(1, this.levelDef.hearts + this.mode.heartsDelta);
         this.hearts      = this.startingHearts;
         this.moveCount   = 0;
         this.isAnimating = false;
@@ -124,7 +132,7 @@ export class GameScene extends Scene {
         this.input.on('pointermove', this.onPointerMove, this);
         this.input.on('pointerout',  () => {
             this.pathGfx.clear();
-            this.setStatus(this.mode.infiniteHearts ? 'Zen mode: explore freely without losing hearts.' : 'Choose a free arrow to slide it off the board.');
+            this.setStatus(this.getIdleStatus());
         }, this);
 
         // Keyboard: arrow-key highlighting (Enter/Space = click)
@@ -284,7 +292,7 @@ export class GameScene extends Scene {
         }).setOrigin(0.5);
 
         this.setUndoEnabled(false);
-        this.setStatus(this.mode.infiniteHearts ? 'Zen mode: explore freely without losing hearts.' : 'Choose a free arrow to slide it off the board.');
+        this.setStatus(this.getIdleStatus());
     }
 
     private renderHearts(): void {
@@ -333,7 +341,7 @@ export class GameScene extends Scene {
         this.pathGfx.clear();
         const { row, col } = this.pixelToGrid(pointer.x, pointer.y);
         if (row < 0) {
-            this.setStatus(this.mode.infiniteHearts ? 'Zen mode: explore freely without losing hearts.' : 'Choose a free arrow to slide it off the board.');
+            this.setStatus(this.getIdleStatus());
             return;
         }
         this.tryExtract(row, col);
@@ -344,15 +352,15 @@ export class GameScene extends Scene {
         const { row, col } = this.pixelToGrid(pointer.x, pointer.y);
         this.pathGfx.clear();
         if (row < 0) {
-            this.setStatus(this.mode.infiniteHearts ? 'Zen mode: explore freely without losing hearts.' : 'Choose a free arrow to slide it off the board.');
+            this.setStatus(this.getIdleStatus());
             return;
         }
         const arrow = this.grid[row][col];
         if (arrow) {
             this.drawPathHighlight(arrow);
-            this.setStatus(this.isPathClear(arrow) ? 'Clear lane — this arrow can exit now.' : 'Blocked lane — clear the obstacle first.');
+            this.setStatus(this.isPathClear(arrow) ? CLEAR_PATH_STATUS : BLOCKED_PATH_STATUS);
         } else {
-            this.setStatus('Empty cell — hover an arrow to preview its exit path.');
+            this.setStatus(EMPTY_CELL_STATUS);
         }
     }
 
@@ -415,7 +423,7 @@ export class GameScene extends Scene {
         this.arrowsLeft--;
         this.moveCount++;
         this.movesText.setText(`Moves: ${this.moveCount}`);
-        this.setStatus('Nice move — keep peeling the board apart.');
+        this.setStatus(SUCCESS_STATUS);
 
         this.setUndoEnabled(this.mode.allowUndo);
 
@@ -470,13 +478,13 @@ export class GameScene extends Scene {
         this.cameras.main.shake(200, 0.005);
 
         if (this.mode.infiniteHearts) {
-            this.setStatus('Blocked lane, but Zen mode keeps the run alive.');
+            this.setStatus(ZEN_BLOCKED_STATUS);
             return;
         }
 
         this.hearts--;
         this.renderHearts();
-        this.setStatus(this.hearts > 0 ? 'Blocked path — you lost a heart.' : 'No hearts left — level failed.');
+        this.setStatus(this.hearts > 0 ? HEART_LOSS_STATUS : GAME_OVER_STATUS);
 
         if (this.hearts <= 0) {
             this.time.delayedCall(400, () => {
@@ -499,7 +507,7 @@ export class GameScene extends Scene {
         this.arrowsLeft++;
         this.moveCount--;
         this.movesText.setText(`Moves: ${this.moveCount}`);
-        this.setStatus('Last move restored.');
+        this.setStatus(UNDO_STATUS);
 
         // Re-draw the arrow sprite
         const gfx = this.add.graphics();
@@ -666,5 +674,9 @@ export class GameScene extends Scene {
 
     private setStatus(message: string): void {
         this.statusText.setText(message);
+    }
+
+    private getIdleStatus(): string {
+        return this.mode.infiniteHearts ? ZEN_STATUS : DEFAULT_STATUS;
     }
 }

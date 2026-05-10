@@ -9,12 +9,23 @@ import {
     getSavedLevelForMode,
 } from '../GameMode';
 
+const CARD_SELECTED_ALPHA = 0.28;
+const CARD_UNSELECTED_ALPHA = 0.92;
+const CARD_ACCENT_ALPHA = 0.95;
+const CARD_ACCENT_DIM_ALPHA = 0.55;
+const CARD_TOP_BAR_HEIGHT = 8;
+const CARD_INSET_X = 18;
+
 interface ModeCard {
     mode: GameMode;
     box: GameObjects.Graphics;
     title: GameObjects.Text;
     body: GameObjects.Text;
     meta: GameObjects.Text;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
 }
 
 /**
@@ -158,28 +169,28 @@ export class MainMenu extends Scene {
             }
         });
 
-        const title = this.add.text(x + 18, y + 18, mode.label, {
+        const title = this.add.text(x + CARD_INSET_X, y + 18, mode.label, {
             fontFamily: 'Arial Black, Arial',
             fontSize: '24px',
             color: '#F8FBFF',
         });
 
-        const meta = this.add.text(x + 18, y + 54, this.getModeMeta(mode), {
+        const meta = this.add.text(x + CARD_INSET_X, y + 54, this.getModeMeta(mode), {
             fontFamily: 'Arial',
             fontSize: '14px',
             color: '#D6EAF8',
             fontStyle: 'bold',
         });
 
-        const body = this.add.text(x + 18, y + 82, mode.description, {
+        const body = this.add.text(x + CARD_INSET_X, y + 82, mode.description, {
             fontFamily: 'Arial',
             fontSize: '13px',
             color: '#D5DBDB',
-            wordWrap: { width: width - 36 },
+            wordWrap: { width: width - (CARD_INSET_X * 2) },
             lineSpacing: 4,
         });
 
-        const card = { mode, box, title, meta, body };
+        const card = { mode, box, title, meta, body, x, y, width, height };
         this.drawModeCard(card, false);
         return card;
     }
@@ -222,15 +233,15 @@ export class MainMenu extends Scene {
     }
 
     private drawModeCard(card: ModeCard, selected: boolean): void {
-        const { box, mode, title, meta, body } = card;
+        const { box, mode, title, meta, body, x, y, width, height } = card;
 
         box.clear();
-        box.fillStyle(selected ? mode.accentColor : 0x16213E, selected ? 0.28 : 0.92);
-        box.fillRoundedRect(title.x - 18, title.y - 16, 214, 142, 20);
+        box.fillStyle(selected ? mode.accentColor : 0x16213E, selected ? CARD_SELECTED_ALPHA : CARD_UNSELECTED_ALPHA);
+        box.fillRoundedRect(x, y, width, height, 20);
         box.lineStyle(2, mode.accentColor, selected ? 1 : 0.45);
-        box.strokeRoundedRect(title.x - 18, title.y - 16, 214, 142, 20);
-        box.fillStyle(mode.accentColor, selected ? 0.95 : 0.55);
-        box.fillRoundedRect(title.x - 18, title.y - 16, 214, 8, 8);
+        box.strokeRoundedRect(x, y, width, height, 20);
+        box.fillStyle(mode.accentColor, selected ? CARD_ACCENT_ALPHA : CARD_ACCENT_DIM_ALPHA);
+        box.fillRoundedRect(x, y, width, CARD_TOP_BAR_HEIGHT, CARD_TOP_BAR_HEIGHT);
 
         title.setColor(selected ? '#FFFFFF' : '#EAF2F8');
         meta.setColor(selected ? '#FDFEFE' : '#A9CCE3');
