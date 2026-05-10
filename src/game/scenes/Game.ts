@@ -76,7 +76,7 @@ export class GameScene extends Scene {
         this.levelDef    = LEVELS[this.levelIndex] ?? LEVELS[0];
         this.mode        = getGameMode(data?.modeId);
         this.startingHearts = this.mode.infiniteHearts
-            ? this.levelDef.hearts
+            ? Number.POSITIVE_INFINITY
             : Math.max(1, this.levelDef.hearts + this.mode.heartsDelta);
         this.hearts      = this.startingHearts;
         this.moveCount   = 0;
@@ -235,7 +235,7 @@ export class GameScene extends Scene {
             color: '#5D6D7E',
         }).setOrigin(0.5, 0);
 
-        this.add.text(W / 2, 34, this.mode.infiniteHearts ? 'Relaxed mistakes' : this.mode.allowUndo ? 'Undo available' : 'No undo in this mode', {
+        this.add.text(W / 2, 34, this.mode.infiniteHearts ? 'Relaxed play' : this.mode.allowUndo ? 'Undo available' : 'No undo in this mode', {
             fontFamily: 'Arial',
             fontSize: '12px',
             color: '#7F8C8D',

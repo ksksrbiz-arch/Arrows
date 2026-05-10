@@ -83,13 +83,7 @@ export class LevelComplete extends Scene {
             color: '#5D6D7E',
         }).setOrigin(0.5);
 
-        const heartMsg = levelDef
-            ? mode.infiniteHearts
-                ? 'Zen clear: no hearts were consumed.'
-                : mode.allowUndo
-                    ? `Hearts performance: ${data.stars === 3 ? '✓ Perfect!' : `${stars}/3 stars`}`
-                    : 'Challenge clear: completed without undo.'
-            : '';
+        const heartMsg = this.getHeartMessage(Boolean(levelDef), mode.infiniteHearts, mode.allowUndo, stars);
         this.add.text(W / 2, panelY + 186, heartMsg, {
             fontFamily: 'Arial',
             fontSize: '15px',
@@ -170,5 +164,21 @@ export class LevelComplete extends Scene {
                 });
             });
         }
+    }
+
+    private getHeartMessage(hasLevel: boolean, infiniteHearts: boolean, allowUndo: boolean, stars: number): string {
+        if (!hasLevel) {
+            return '';
+        }
+
+        if (infiniteHearts) {
+            return 'Zen clear: no hearts were consumed.';
+        }
+
+        if (!allowUndo) {
+            return 'Challenge clear: completed without undo.';
+        }
+
+        return `Hearts performance: ${stars === 3 ? '✓ Perfect!' : `${stars}/3 stars`}`;
     }
 }

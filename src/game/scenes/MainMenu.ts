@@ -5,6 +5,7 @@ import {
     DEFAULT_MODE_ID,
     GAME_MODES,
     GameMode,
+    getGameMode,
     getSavedLevelForMode,
 } from '../GameMode';
 
@@ -85,7 +86,7 @@ export class MainMenu extends Scene {
 
         this.actionButton.on('pointerdown', () => this.startSelectedMode());
         this.actionButton.on('pointerover', () => this.actionButton.setStyle({ backgroundColor: '#85C1E9' }));
-        this.actionButton.on('pointerout', () => this.actionButton.setStyle({ backgroundColor: getSelectedMode(this.selectedModeId).accent }));
+        this.actionButton.on('pointerout', () => this.actionButton.setStyle({ backgroundColor: getGameMode(this.selectedModeId).accent }));
 
         this.actionHint = this.add.text(W / 2, 518, '', {
             fontFamily: 'Arial',
@@ -190,7 +191,7 @@ export class MainMenu extends Scene {
     }
 
     private refreshActionState(): void {
-        const mode = getSelectedMode(this.selectedModeId);
+        const mode = getGameMode(this.selectedModeId);
         const savedLevel = getSavedLevelForMode(mode.id, LEVELS.length);
         const hasProgress = savedLevel > 0;
 
@@ -256,8 +257,4 @@ export class MainMenu extends Scene {
             color,
         }).setOrigin(0.5).setAlpha(0.2);
     }
-}
-
-function getSelectedMode(modeId: string): GameMode {
-    return GAME_MODES.find((mode) => mode.id === modeId) ?? GAME_MODES[0];
 }
