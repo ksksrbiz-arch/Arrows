@@ -411,6 +411,8 @@ export class GameScene extends Scene {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
 
         const date = new Date(`${dateKey}T00:00:00.000Z`);
+        if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== dateKey) return;
+
         date.setUTCDate(date.getUTCDate() + days);
         this.scene.restart({ modeId: this.mode.id, dateKey: date.toISOString().slice(0, 10) });
     }

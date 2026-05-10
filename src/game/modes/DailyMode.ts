@@ -11,13 +11,14 @@ interface DailyState {
 const DAILY_STATE_KEY = storageKey('daily_state');
 const EMPTY_DAILY_STATE: DailyState = { completed: [], streak: 0, lastPerfectDate: '' };
 const MAX_COMPLETED_HISTORY = 400;
+const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function getTodayKey(date = new Date()): string {
     return date.toISOString().slice(0, 10);
 }
 
 function addDays(dateKey: string, days: number): string {
-    const date = new Date(`${dateKey}T00:00:00.000Z`);
+    const date = parseDateKey(dateKey) ?? new Date(`${getTodayKey()}T00:00:00.000Z`);
     date.setUTCDate(date.getUTCDate() + days);
     return getTodayKey(date);
 }
@@ -33,7 +34,15 @@ function writeDailyState(state: DailyState): void {
 }
 
 function getDateId(dateKey: string): number {
-    return Math.floor(new Date(`${dateKey}T00:00:00.000Z`).getTime() / 86_400_000);
+    const date = parseDateKey(dateKey) ?? new Date(`${getTodayKey()}T00:00:00.000Z`);
+    return Math.floor(date.getTime() / 86_400_000);
+}
+
+function parseDateKey(dateKey: string): Date | null {
+    if (!DATE_KEY_PATTERN.test(dateKey)) return null;
+
+    const date = new Date(`${dateKey}T00:00:00.000Z`);
+    return Number.isNaN(date.getTime()) || getTodayKey(date) !== dateKey ? null : date;
 }
 
 export const DailyMode: GameMode = {
@@ -70,7 +79,7 @@ export const DailyMode: GameMode = {
     },
 
     resolveLevel(data: GameSceneDataLike): ModeLevel {
-        const dateKey = data.dateKey ?? getTodayKey();
+        const dateKey = parseDateKey(data.dateKey ?? '') ? data.dateKey as string : getTodayKey();
         const levelDef = PuzzleGenerator.generate({
             seed: `daily:${dateKey}`,
             id: getDateId(dateKey),

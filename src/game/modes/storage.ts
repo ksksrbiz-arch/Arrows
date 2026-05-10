@@ -29,7 +29,19 @@ export function readJson<T>(key: string, fallback: T): T {
         if (raw === null) return fallback;
 
         const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? { ...fallback, ...parsed } : fallback;
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !fallback || typeof fallback !== 'object') {
+            return fallback;
+        }
+
+        const parsedRecord = parsed as Record<string, unknown>;
+        const result = { ...fallback } as Record<string, unknown>;
+        for (const key of Object.keys(fallback)) {
+            if (key in parsedRecord) {
+                result[key] = parsedRecord[key];
+            }
+        }
+
+        return result as T;
     } catch {
         return fallback;
     }

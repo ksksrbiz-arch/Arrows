@@ -8,7 +8,13 @@ const MAX_RANDOM_SEED_COMPONENT = 0xFFFFFF;
 
 function createRunSeed(): string {
     return globalThis.crypto?.randomUUID?.()
-        ?? `${Date.now().toString(36)}-${Math.floor(Math.random() * MAX_RANDOM_SEED_COMPONENT).toString(36)}`;
+        ?? `${Date.now().toString(36)}-${getRandomSeedComponent().toString(36)}`;
+}
+
+function getRandomSeedComponent(): number {
+    const values = new Uint32Array(1);
+    globalThis.crypto?.getRandomValues?.(values);
+    return values[0] === 0 ? Math.floor(Math.random() * MAX_RANDOM_SEED_COMPONENT) : values[0];
 }
 
 function getDifficulty(level: number): { gridSize: number; density: number; tier: string } {
