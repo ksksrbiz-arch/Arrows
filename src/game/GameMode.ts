@@ -37,7 +37,7 @@ export const GAME_MODES: GameMode[] = [
         id: 'challenge',
         label: 'Challenge',
         shortLabel: 'Challenge',
-        description: 'Tighter hearts and no undo for a sharper puzzle run.',
+        description: 'Reduced hearts (never below 1) and no undo for a sharper run.',
         accent: '#F5B041',
         accentColor: 0xF5B041,
         heartsDelta: -1,

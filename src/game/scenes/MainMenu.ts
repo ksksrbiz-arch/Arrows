@@ -255,7 +255,7 @@ export class MainMenu extends Scene {
         }
 
         if (!mode.allowUndo) {
-            return 'reduced hearts • undo off';
+            return 'reduced hearts (min 1) • undo off';
         }
 
         return 'standard hearts • undo on';

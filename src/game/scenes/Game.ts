@@ -85,7 +85,7 @@ export class GameScene extends Scene {
         this.levelIndex  = data?.levelIndex ?? 0;
         this.levelDef    = LEVELS[this.levelIndex] ?? LEVELS[0];
         this.mode        = getGameMode(data?.modeId);
-        this.startingHearts = Math.max(1, this.levelDef.hearts + this.mode.heartsDelta);
+        this.startingHearts = this.getStartingHearts();
         this.hearts      = this.startingHearts;
         this.moveCount   = 0;
         this.isAnimating = false;
@@ -678,5 +678,14 @@ export class GameScene extends Scene {
 
     private getIdleStatus(): string {
         return this.mode.infiniteHearts ? ZEN_STATUS : DEFAULT_STATUS;
+    }
+
+    private getStartingHearts(): number {
+        if (this.mode.infiniteHearts) {
+            return this.levelDef.hearts;
+        }
+
+        // Challenge mode always leaves at least one heart so every level remains playable.
+        return Math.max(1, this.levelDef.hearts + this.mode.heartsDelta);
     }
 }
