@@ -1,8 +1,10 @@
 import { Math as PhaserMath, Scene } from 'phaser';
+import { getGameMode } from '../GameMode';
 import { LEVELS } from '../LevelData';
 
 interface LevelCompleteData {
     levelIndex: number;
+    modeId?: string;
     stars: number;
     moves: number;
 }
@@ -20,8 +22,9 @@ export class LevelComplete extends Scene {
         const W = this.scale.width;
         const H = this.scale.height;
 
-        const { levelIndex, stars, moves } = data;
+        const { levelIndex, modeId, stars, moves } = data;
         const isLastLevel = levelIndex >= LEVELS.length - 1;
+        const mode = getGameMode(modeId);
 
         // ── Dark overlay ──────────────────────────────────────────────────────
         const bg = this.add.graphics();
@@ -47,9 +50,17 @@ export class LevelComplete extends Scene {
             color: '#2C3E50',
         }).setOrigin(0.5);
 
+        this.add.text(W / 2, panelY + 64, mode.label, {
+            fontFamily: 'Arial Black, Arial',
+            fontSize: '11px',
+            color: '#FFFFFF',
+            backgroundColor: mode.accent,
+            padding: { x: 10, y: 4 },
+        }).setOrigin(0.5);
+
         // ── Stars ─────────────────────────────────────────────────────────────
         const starStr = '★'.repeat(stars) + '☆'.repeat(3 - stars);
-        const starText = this.add.text(W / 2, panelY + 90, starStr, {
+        const starText = this.add.text(W / 2, panelY + 104, starStr, {
             fontFamily: 'Arial',
             fontSize: '44px',
             color: '#F1C40F',
@@ -66,16 +77,14 @@ export class LevelComplete extends Scene {
 
         // ── Stats ─────────────────────────────────────────────────────────────
         const levelDef = LEVELS[levelIndex];
-        this.add.text(W / 2, panelY + 152, `Moves: ${moves}`, {
+        this.add.text(W / 2, panelY + 160, `Moves: ${moves}`, {
             fontFamily: 'Arial',
             fontSize: '18px',
             color: '#5D6D7E',
         }).setOrigin(0.5);
 
-        const heartMsg = levelDef
-            ? `Hearts remaining: ${data.stars === 3 ? '✓ Perfect!' : String(data.stars)}`
-            : '';
-        this.add.text(W / 2, panelY + 178, heartMsg, {
+        const heartMsg = this.getHeartMessage(!!levelDef, mode.infiniteHearts, mode.allowUndo, stars);
+        this.add.text(W / 2, panelY + 186, heartMsg, {
             fontFamily: 'Arial',
             fontSize: '15px',
             color: '#7F8C8D',
@@ -89,15 +98,15 @@ export class LevelComplete extends Scene {
                 fontFamily: 'Arial Black, Arial',
                 fontSize: '20px',
                 color: '#FFFFFF',
-                backgroundColor: '#27AE60',
+                backgroundColor: mode.accent,
                 padding: { x: 20, y: 10 },
             }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
 
             nextBtn.on('pointerdown', () => {
-                this.scene.start('Game', { levelIndex: levelIndex + 1 });
+                this.scene.start('Game', { levelIndex: levelIndex + 1, modeId: mode.id });
             });
-            nextBtn.on('pointerover',  () => nextBtn.setStyle({ backgroundColor: '#2ECC71' }));
-            nextBtn.on('pointerout',   () => nextBtn.setStyle({ backgroundColor: '#27AE60' }));
+            nextBtn.on('pointerover',  () => nextBtn.setStyle({ backgroundColor: '#7FB3D5' }));
+            nextBtn.on('pointerout',   () => nextBtn.setStyle({ backgroundColor: mode.accent }));
         } else {
             // Last level completed!
             this.add.text(W / 2, btnY, '🎉 All levels complete!', {
@@ -125,7 +134,7 @@ export class LevelComplete extends Scene {
             fontSize: '14px',
             color: '#AEB6BF',
         }).setOrigin(0.5).setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => { this.scene.start('Game', { levelIndex }); });
+            .on('pointerdown', () => { this.scene.start('Game', { levelIndex, modeId: mode.id }); });
 
         // ── Celebration particles ─────────────────────────────────────────────
         this.time.delayedCall(200, () => this.celebrate());
@@ -155,5 +164,21 @@ export class LevelComplete extends Scene {
                 });
             });
         }
+    }
+
+    private getHeartMessage(hasLevel: boolean, infiniteHearts: boolean, allowUndo: boolean, stars: number): string {
+        if (!hasLevel) {
+            return '';
+        }
+
+        if (infiniteHearts) {
+            return 'Zen clear: no hearts were consumed.';
+        }
+
+        if (!allowUndo) {
+            return 'Challenge clear: completed without undo.';
+        }
+
+        return `Hearts performance: ${stars === 3 ? '✓ Perfect!' : `${stars}/3 stars`}`;
     }
 }
