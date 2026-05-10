@@ -1,6 +1,7 @@
 import { Geom, Math as PhaserMath, Scene } from 'phaser';
 import { Arrow, Direction } from '../Arrow';
 import { LEVELS, LevelDef } from '../LevelData';
+import { GameMode, getGameMode, saveLevelForMode } from '../GameMode';
 import { drawArrowShape } from './Preloader';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ const BG_COLOR      = '#EBF5FB';
 
 interface GameSceneData {
     levelIndex?: number;
+    modeId?: string;
 }
 
 /**
@@ -36,7 +38,9 @@ export class GameScene extends Scene {
     // ── Game state ────────────────────────────────────────────────────────────
     private levelIndex!: number;
     private levelDef!: LevelDef;
+    private mode!: GameMode;
     private grid!: (Arrow | null)[][];
+    private startingHearts!: number;
     private hearts!: number;
     private moveCount!: number;
     private arrowsLeft!: number;
@@ -59,6 +63,7 @@ export class GameScene extends Scene {
     private heartTexts!: Phaser.GameObjects.Text[];
     private movesText!: Phaser.GameObjects.Text;
     private undoBtn!: Phaser.GameObjects.Text;
+    private statusText!: Phaser.GameObjects.Text;
 
     constructor() {
         super('Game');
@@ -69,7 +74,11 @@ export class GameScene extends Scene {
     init(data: GameSceneData) {
         this.levelIndex  = data?.levelIndex ?? 0;
         this.levelDef    = LEVELS[this.levelIndex] ?? LEVELS[0];
-        this.hearts      = this.levelDef.hearts;
+        this.mode        = getGameMode(data?.modeId);
+        this.startingHearts = this.mode.infiniteHearts
+            ? this.levelDef.hearts
+            : Math.max(1, this.levelDef.hearts + this.mode.heartsDelta);
+        this.hearts      = this.startingHearts;
         this.moveCount   = 0;
         this.isAnimating = false;
         this.lastArrow   = null;
@@ -79,7 +88,7 @@ export class GameScene extends Scene {
         const W = this.scale.width;
         const H = this.scale.height;
 
-        this.cameras.main.setBackgroundColor(BG_COLOR);
+        this.drawSceneChrome(W, H);
 
         // ── Compute grid layout ───────────────────────────────────────────────
         this.gridSize = this.levelDef.gridSize;
@@ -113,7 +122,10 @@ export class GameScene extends Scene {
         // ── Input ─────────────────────────────────────────────────────────────
         this.input.on('pointerdown', this.onPointerDown, this);
         this.input.on('pointermove', this.onPointerMove, this);
-        this.input.on('pointerout',  () => { this.pathGfx.clear(); }, this);
+        this.input.on('pointerout',  () => {
+            this.pathGfx.clear();
+            this.setStatus(this.mode.infiniteHearts ? 'Zen mode: explore freely without losing hearts.' : 'Choose a free arrow to slide it off the board.');
+        }, this);
 
         // Keyboard: arrow-key highlighting (Enter/Space = click)
         this.input.keyboard?.on('keydown', this.onKeyDown, this);
@@ -196,7 +208,12 @@ export class GameScene extends Scene {
         const W = this.scale.width;
         const H = this.scale.height;
 
-        // Level title
+        const chrome = this.add.graphics();
+        chrome.fillStyle(0x0F1726, 0.18);
+        chrome.fillRoundedRect(12, 10, W - 24, 46, 18);
+        chrome.fillStyle(0xFFFFFF, 0.12);
+        chrome.fillRoundedRect(12, H - 66, W - 24, 44, 18);
+
         this.add.text(16, 14, `Level ${this.levelDef.id} – ${this.levelDef.title}`, {
             fontFamily: 'Arial',
             fontSize: '18px',
@@ -204,18 +221,29 @@ export class GameScene extends Scene {
             fontStyle: 'bold',
         });
 
-        // Move counter
+        this.add.text(16, 36, this.mode.label, {
+            fontFamily: 'Arial Black, Arial',
+            fontSize: '11px',
+            color: '#FFFFFF',
+            backgroundColor: this.mode.accent,
+            padding: { x: 10, y: 4 },
+        });
+
         this.movesText = this.add.text(W / 2, 14, 'Moves: 0', {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#5D6D7E',
         }).setOrigin(0.5, 0);
 
-        // Hearts
+        this.add.text(W / 2, 34, this.mode.infiniteHearts ? 'Relaxed mistakes' : this.mode.allowUndo ? 'Undo available' : 'No undo in this mode', {
+            fontFamily: 'Arial',
+            fontSize: '12px',
+            color: '#7F8C8D',
+        }).setOrigin(0.5, 0);
+
         this.heartTexts = [];
         this.renderHearts();
 
-        // ── Bottom buttons ────────────────────────────────────────────────────
         const btnY = H - 34;
 
         // Restart
@@ -242,12 +270,21 @@ export class GameScene extends Scene {
         menuBtn.on('pointerover', () => menuBtn.setColor('#2C3E50'));
         menuBtn.on('pointerout',  () => menuBtn.setColor('#7F8C8D'));
 
-        // Undo
-        this.undoBtn = this.add.text(W / 2, btnY, '⟵ Undo', {
+        this.undoBtn = this.add.text(W / 2, btnY, this.mode.allowUndo ? '⟵ Undo' : 'Undo Off', {
             fontFamily: 'Arial',
             fontSize: '17px',
-            color: '#BDC3C7',
+            color: this.mode.allowUndo ? '#BDC3C7' : '#95A5A6',
         }).setOrigin(0.5, 0.5);
+
+        this.statusText = this.add.text(W / 2, H - 58, '', {
+            fontFamily: 'Arial',
+            fontSize: '14px',
+            color: '#5D6D7E',
+            align: 'center',
+        }).setOrigin(0.5);
+
+        this.setUndoEnabled(false);
+        this.setStatus(this.mode.infiniteHearts ? 'Zen mode: explore freely without losing hearts.' : 'Choose a free arrow to slide it off the board.');
     }
 
     private renderHearts(): void {
@@ -257,7 +294,24 @@ export class GameScene extends Scene {
         this.heartTexts.forEach(t => t.destroy());
         this.heartTexts = [];
 
-        const total   = this.levelDef.hearts;
+        if (this.mode.infiniteHearts) {
+            const zenText = this.add.text(W - 16, 14, '∞', {
+                fontFamily: 'Arial Black, Arial',
+                fontSize: '24px',
+                color: '#27AE60',
+            }).setOrigin(1, 0);
+            this.heartTexts.push(zenText);
+
+            const zenLabel = this.add.text(W - 16, 38, 'Zen', {
+                fontFamily: 'Arial',
+                fontSize: '12px',
+                color: '#229954',
+            }).setOrigin(1, 0);
+            this.heartTexts.push(zenLabel);
+            return;
+        }
+
+        const total   = this.startingHearts;
         const spacing = 28;
         const startX  = W - 16 - (total - 1) * spacing;
 
@@ -276,9 +330,12 @@ export class GameScene extends Scene {
 
     private onPointerDown(pointer: Phaser.Input.Pointer): void {
         if (this.isAnimating) return;
-        const { row, col } = this.pixelToGrid(pointer.x, pointer.y);
-        if (row < 0) return; // outside grid
         this.pathGfx.clear();
+        const { row, col } = this.pixelToGrid(pointer.x, pointer.y);
+        if (row < 0) {
+            this.setStatus(this.mode.infiniteHearts ? 'Zen mode: explore freely without losing hearts.' : 'Choose a free arrow to slide it off the board.');
+            return;
+        }
         this.tryExtract(row, col);
     }
 
@@ -286,15 +343,27 @@ export class GameScene extends Scene {
         if (this.isAnimating) return;
         const { row, col } = this.pixelToGrid(pointer.x, pointer.y);
         this.pathGfx.clear();
-        if (row < 0) return;
+        if (row < 0) {
+            this.setStatus(this.mode.infiniteHearts ? 'Zen mode: explore freely without losing hearts.' : 'Choose a free arrow to slide it off the board.');
+            return;
+        }
         const arrow = this.grid[row][col];
-        if (arrow) this.drawPathHighlight(arrow);
+        if (arrow) {
+            this.drawPathHighlight(arrow);
+            this.setStatus(this.isPathClear(arrow) ? 'Clear lane — this arrow can exit now.' : 'Blocked lane — clear the obstacle first.');
+        } else {
+            this.setStatus('Empty cell — hover an arrow to preview its exit path.');
+        }
     }
 
     private onKeyDown(event: KeyboardEvent): void {
         if (this.isAnimating) return;
         if (event.key === 'z' || event.key === 'Z') {
             this.doUndo();
+        } else if (event.key === 'r' || event.key === 'R') {
+            this.scene.restart({ levelIndex: this.levelIndex, modeId: this.mode.id });
+        } else if (event.key === 'Escape') {
+            this.scene.start('MainMenu');
         }
     }
 
@@ -346,14 +415,9 @@ export class GameScene extends Scene {
         this.arrowsLeft--;
         this.moveCount++;
         this.movesText.setText(`Moves: ${this.moveCount}`);
+        this.setStatus('Nice move — keep peeling the board apart.');
 
-        // Enable undo button
-        this.undoBtn
-            .setColor('#2980B9')
-            .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => this.doUndo())
-            .on('pointerover', () => this.undoBtn.setColor('#3498DB'))
-            .on('pointerout',  () => this.undoBtn.setColor('#2980B9'));
+        this.setUndoEnabled(this.mode.allowUndo);
 
         // Target position: well off-screen in the exit direction
         const { dr, dc }  = arrow.getDelta();
@@ -405,12 +469,18 @@ export class GameScene extends Scene {
         // Camera shake
         this.cameras.main.shake(200, 0.005);
 
+        if (this.mode.infiniteHearts) {
+            this.setStatus('Blocked lane, but Zen mode keeps the run alive.');
+            return;
+        }
+
         this.hearts--;
         this.renderHearts();
+        this.setStatus(this.hearts > 0 ? 'Blocked path — you lost a heart.' : 'No hearts left — level failed.');
 
         if (this.hearts <= 0) {
             this.time.delayedCall(400, () => {
-                this.scene.start('GameOver', { levelIndex: this.levelIndex });
+                this.scene.start('GameOver', { levelIndex: this.levelIndex, modeId: this.mode.id });
             });
         }
     }
@@ -419,7 +489,7 @@ export class GameScene extends Scene {
      * Single-step undo: put the last successfully extracted arrow back.
      */
     private doUndo(): void {
-        if (!this.lastArrow || this.isAnimating) return;
+        if (!this.mode.allowUndo || !this.lastArrow || this.isAnimating) return;
 
         const arrow = this.lastArrow;
         this.lastArrow = null;
@@ -429,6 +499,7 @@ export class GameScene extends Scene {
         this.arrowsLeft++;
         this.moveCount--;
         this.movesText.setText(`Moves: ${this.moveCount}`);
+        this.setStatus('Last move restored.');
 
         // Re-draw the arrow sprite
         const gfx = this.add.graphics();
@@ -446,12 +517,7 @@ export class GameScene extends Scene {
         });
 
         // Disable undo button until next extraction
-        this.undoBtn
-            .setColor('#BDC3C7')
-            .removeInteractive()
-            .off('pointerdown')
-            .off('pointerover')
-            .off('pointerout');
+        this.setUndoEnabled(false);
     }
 
     // ── Win / save ────────────────────────────────────────────────────────────
@@ -459,15 +525,12 @@ export class GameScene extends Scene {
     private checkWin(): void {
         if (this.arrowsLeft > 0) return;
 
-        // Save progress
         const nextLevel = Math.min(this.levelIndex + 1, LEVELS.length - 1);
-        try {
-            localStorage.setItem('arrows_level', nextLevel.toString());
-        } catch {
-            // ignore storage errors
-        }
+        saveLevelForMode(this.mode.id, nextLevel);
 
-        const stars = this.hearts >= this.levelDef.hearts
+        const stars = this.mode.infiniteHearts
+            ? 3
+            : this.hearts >= this.startingHearts
             ? 3
             : this.hearts > 0
                 ? 2
@@ -476,6 +539,7 @@ export class GameScene extends Scene {
         this.time.delayedCall(300, () => {
             this.scene.start('LevelComplete', {
                 levelIndex: this.levelIndex,
+                modeId: this.mode.id,
                 stars,
                 moves:      this.moveCount,
             });
@@ -564,5 +628,43 @@ export class GameScene extends Scene {
             return { row: -1, col: -1 };
         }
         return { row: r, col: c };
+    }
+
+    private drawSceneChrome(width: number, height: number): void {
+        this.cameras.main.setBackgroundColor(BG_COLOR);
+
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0xEAF4FB, 0xEAF4FB, 0xD4E6F1, 0xD4E6F1, 1);
+        bg.fillRect(0, 0, width, height);
+        bg.fillStyle(this.mode.accentColor, 0.08);
+        bg.fillCircle(width * 0.16, height * 0.18, 120);
+        bg.fillCircle(width * 0.84, height * 0.84, 150);
+    }
+
+    private setUndoEnabled(enabled: boolean): void {
+        this.undoBtn.off('pointerdown');
+        this.undoBtn.off('pointerover');
+        this.undoBtn.off('pointerout');
+
+        if (!this.mode.allowUndo) {
+            this.undoBtn.setColor('#95A5A6').removeInteractive();
+            return;
+        }
+
+        if (!enabled) {
+            this.undoBtn.setColor('#BDC3C7').removeInteractive();
+            return;
+        }
+
+        this.undoBtn
+            .setColor('#2980B9')
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => this.doUndo())
+            .on('pointerover', () => this.undoBtn.setColor('#3498DB'))
+            .on('pointerout',  () => this.undoBtn.setColor('#2980B9'));
+    }
+
+    private setStatus(message: string): void {
+        this.statusText.setText(message);
     }
 }

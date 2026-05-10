@@ -1,8 +1,10 @@
 import { Scene } from 'phaser';
+import { getGameMode } from '../GameMode';
 import { LEVELS } from '../LevelData';
 
 interface GameOverData {
     levelIndex: number;
+    modeId?: string;
 }
 
 /**
@@ -19,6 +21,7 @@ export class GameOver extends Scene {
         const H = this.scale.height;
 
         const levelIndex = data?.levelIndex ?? 0;
+        const mode = getGameMode(data?.modeId);
         const levelDef   = LEVELS[levelIndex];
 
         // ── Dark red overlay ──────────────────────────────────────────────────
@@ -45,16 +48,24 @@ export class GameOver extends Scene {
             color: '#C0392B',
         }).setOrigin(0.5);
 
+        this.add.text(W / 2, panelY + 68, mode.label, {
+            fontFamily: 'Arial Black, Arial',
+            fontSize: '11px',
+            color: '#FFFFFF',
+            backgroundColor: mode.accent,
+            padding: { x: 10, y: 4 },
+        }).setOrigin(0.5);
+
         // ── Level name ────────────────────────────────────────────────────────
         if (levelDef) {
-            this.add.text(W / 2, panelY + 86, `Level ${levelDef.id} – ${levelDef.title}`, {
+            this.add.text(W / 2, panelY + 98, `Level ${levelDef.id} – ${levelDef.title}`, {
                 fontFamily: 'Arial',
                 fontSize: '16px',
                 color: '#7F8C8D',
             }).setOrigin(0.5);
         }
 
-        this.add.text(W / 2, panelY + 116, "Don't give up – study the order!", {
+        this.add.text(W / 2, panelY + 128, mode.allowUndo ? "Don't give up – study the order!" : 'Challenge mode bites back — try a cleaner route.', {
             fontFamily: 'Arial',
             fontSize: '14px',
             color: '#AEB6BF',
@@ -68,15 +79,15 @@ export class GameOver extends Scene {
             fontFamily: 'Arial Black, Arial',
             fontSize: '20px',
             color: '#FFFFFF',
-            backgroundColor: '#E74C3C',
+            backgroundColor: mode.accent,
             padding: { x: 20, y: 10 },
         }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
 
         retryBtn.on('pointerdown', () => {
-            this.scene.start('Game', { levelIndex });
+            this.scene.start('Game', { levelIndex, modeId: mode.id });
         });
-        retryBtn.on('pointerover',  () => retryBtn.setStyle({ backgroundColor: '#EC7063' }));
-        retryBtn.on('pointerout',   () => retryBtn.setStyle({ backgroundColor: '#E74C3C' }));
+        retryBtn.on('pointerover',  () => retryBtn.setStyle({ backgroundColor: '#F1948A' }));
+        retryBtn.on('pointerout',   () => retryBtn.setStyle({ backgroundColor: mode.accent }));
 
         const menuBtn = this.add.text(W / 2 - 8, btnY, '☰ Menu', {
             fontFamily: 'Arial',
