@@ -1,12 +1,10 @@
 import { GameObjects, Geom, Scene } from 'phaser';
 import { LEVELS } from '../LevelData';
 import {
-    clearSavedLevelForMode,
     DEFAULT_MODE_ID,
     GAME_MODES,
     GameMode,
     getGameMode,
-    getSavedLevelForMode,
 } from '../GameMode';
 
 const CARD_SELECTED_ALPHA = 0.28;
@@ -79,7 +77,7 @@ export class MainMenu extends Scene {
             fontStyle: 'italic',
         }).setOrigin(0.5);
 
-        this.add.text(W / 2, 198, 'Choose a mode, then peel the board apart without trapping your arrows.', {
+        this.add.text(W / 2, 186, 'Choose a mode, then peel the board apart without trapping your arrows.', {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#D6EAF8',
@@ -88,7 +86,7 @@ export class MainMenu extends Scene {
 
         this.createModeCards();
 
-        this.actionButton = this.add.text(W / 2, 462, '', {
+        this.actionButton = this.add.text(W / 2, 488, '', {
             fontFamily: 'Arial Black, Arial',
             fontSize: '28px',
             color: '#102131',
@@ -100,7 +98,7 @@ export class MainMenu extends Scene {
         this.actionButton.on('pointerover', () => this.actionButton.setStyle({ backgroundColor: '#85C1E9' }));
         this.actionButton.on('pointerout', () => this.actionButton.setStyle({ backgroundColor: this.selectedMode.accent }));
 
-        this.actionHint = this.add.text(W / 2, 518, '', {
+        this.actionHint = this.add.text(W / 2, 538, '', {
             fontFamily: 'Arial',
             fontSize: '15px',
             color: '#D6EAF8',
@@ -108,26 +106,26 @@ export class MainMenu extends Scene {
             lineSpacing: 5,
         }).setOrigin(0.5);
 
-        this.resetButton = this.add.text(W / 2, 555, '', {
+        this.resetButton = this.add.text(W / 2, 570, '', {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#AED6F1',
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         this.resetButton.on('pointerdown', () => {
-            clearSavedLevelForMode(this.selectedModeId);
+            this.selectedMode.resetProgress();
             this.refreshActionState();
         });
         this.resetButton.on('pointerover', () => this.resetButton.setColor('#F4F8FB'));
         this.resetButton.on('pointerout', () => this.resetButton.setColor('#AED6F1'));
 
-        this.add.text(W / 2, H - 22, `${LEVELS.length} handcrafted levels • Hover to preview paths • Z undo • R restart`, {
+        this.add.text(W / 2, H - 12, `${LEVELS.length} handcrafted levels • Daily + Endless generated puzzles • Z undo • R restart`, {
             fontFamily: 'Arial',
             fontSize: '13px',
             color: '#7FB3D5',
         }).setOrigin(0.5);
 
-        this.selectMode(this.selectedModeId);
+        this.selectMode(this.getInitialModeId());
 
         this.tweens.add({
             targets: this.titleText,
@@ -140,11 +138,11 @@ export class MainMenu extends Scene {
     }
 
     private createModeCards(): void {
-        const cardW = 214;
-        const cardH = 142;
-        const startX = 64;
-        const gap = 29;
-        const y = 248;
+        const cardW = 142;
+        const cardH = 184;
+        const startX = 30;
+        const gap = 14;
+        const y = 226;
 
         this.modeCards = GAME_MODES.map((mode, index) => this.createModeCard(
             mode,
@@ -172,20 +170,20 @@ export class MainMenu extends Scene {
 
         const title = this.add.text(x + CARD_INSET_X, y + 18, mode.label, {
             fontFamily: 'Arial Black, Arial',
-            fontSize: '24px',
+            fontSize: '18px',
             color: '#F8FBFF',
         });
 
         const meta = this.add.text(x + CARD_INSET_X, y + 54, mode.meta, {
             fontFamily: 'Arial',
-            fontSize: '14px',
+            fontSize: '12px',
             color: '#D6EAF8',
             fontStyle: 'bold',
         });
 
         const body = this.add.text(x + CARD_INSET_X, y + 82, mode.description, {
             fontFamily: 'Arial',
-            fontSize: '13px',
+            fontSize: '12px',
             color: '#D5DBDB',
             wordWrap: { width: width - (CARD_INSET_X * 2) },
             lineSpacing: 4,
@@ -205,24 +203,19 @@ export class MainMenu extends Scene {
 
     private refreshActionState(): void {
         const mode = this.selectedMode;
-        const savedLevel = getSavedLevelForMode(mode.id, LEVELS.length);
-        const hasProgress = savedLevel > 0;
+        const menuState = mode.getMenuState();
 
         this.actionButton
-            .setText(hasProgress ? `▶ Continue ${mode.shortLabel}` : `▶ Start ${mode.shortLabel}`)
+            .setText(menuState.actionText)
             .setStyle({ backgroundColor: mode.accent });
 
-        this.actionHint.setText(
-            hasProgress
-                ? `Resume at Level ${savedLevel + 1}.\n${mode.description}`
-                : `Fresh run from Level 1.\n${mode.description}`,
-        );
+        this.actionHint.setText(menuState.hintText);
 
         this.resetButton
-            .setText(hasProgress ? `Reset ${mode.shortLabel} progress` : '')
-            .setVisible(hasProgress);
+            .setText(menuState.resetText)
+            .setVisible(menuState.resetVisible);
 
-        if (hasProgress) {
+        if (menuState.resetVisible) {
             this.resetButton.setInteractive({ useHandCursor: true });
         } else {
             this.resetButton.removeInteractive();
@@ -230,8 +223,15 @@ export class MainMenu extends Scene {
     }
 
     private startSelectedMode(): void {
-        const levelIndex = getSavedLevelForMode(this.selectedModeId, LEVELS.length);
-        this.scene.start('Game', { levelIndex, modeId: this.selectedModeId });
+        const data = this.selectedMode.createStartData();
+        const params = new URLSearchParams(window.location.search);
+        if (this.selectedMode.id === 'daily' && params.get('date')) {
+            data.dateKey = params.get('date') ?? data.dateKey;
+        }
+        if (this.selectedMode.id === 'endless' && params.get('seed')) {
+            data.seed = params.get('seed') ?? data.seed;
+        }
+        this.scene.start('Game', { ...data, modeId: this.selectedModeId });
     }
 
     private drawModeCard(card: ModeCard, selected: boolean): void {
@@ -257,5 +257,10 @@ export class MainMenu extends Scene {
             fontSize: '38px',
             color,
         }).setOrigin(0.5).setAlpha(0.2);
+    }
+
+    private getInitialModeId(): string {
+        const modeFromUrl = new URLSearchParams(window.location.search).get('mode');
+        return GAME_MODES.some((mode) => mode.id === modeFromUrl) ? modeFromUrl ?? DEFAULT_MODE_ID : DEFAULT_MODE_ID;
     }
 }

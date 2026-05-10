@@ -1,10 +1,12 @@
 import { Scene } from 'phaser';
-import { getGameMode } from '../GameMode';
-import { LEVELS } from '../LevelData';
+import { GameSceneDataLike, getGameMode } from '../GameMode';
 
-interface GameOverData {
+interface GameOverData extends GameSceneDataLike {
     levelIndex: number;
     modeId?: string;
+    message?: string;
+    score?: number;
+    highScore?: number;
 }
 
 /**
@@ -22,7 +24,7 @@ export class GameOver extends Scene {
 
         const levelIndex = data?.levelIndex ?? 0;
         const mode = getGameMode(data?.modeId);
-        const levelDef   = LEVELS[levelIndex];
+        const modeLevel = mode.resolveLevel(data ?? {});
 
         // ── Dark red overlay ──────────────────────────────────────────────────
         const bg = this.add.graphics();
@@ -57,20 +59,27 @@ export class GameOver extends Scene {
         }).setOrigin(0.5);
 
         // ── Level name ────────────────────────────────────────────────────────
-        if (levelDef) {
-            this.add.text(W / 2, panelY + 98, `Level ${levelDef.id} – ${levelDef.title}`, {
-                fontFamily: 'Arial',
-                fontSize: '16px',
-                color: '#7F8C8D',
-            }).setOrigin(0.5);
-        }
+        this.add.text(W / 2, panelY + 98, modeLevel.label, {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#7F8C8D',
+        }).setOrigin(0.5);
 
-        this.add.text(W / 2, panelY + 128, mode.allowUndo ? "Don't give up – study the order!" : 'Challenge mode bites back — try a cleaner route.', {
+        const message = data?.message ?? (mode.allowUndo ? "Don't give up – study the order!" : 'Challenge mode bites back — try a cleaner route.');
+        this.add.text(W / 2, panelY + 128, message, {
             fontFamily: 'Arial',
             fontSize: '14px',
             color: '#AEB6BF',
             fontStyle: 'italic',
         }).setOrigin(0.5);
+
+        if (typeof data?.score === 'number') {
+            this.add.text(W / 2, panelY + 150, `Score: ${data.score} • Best: ${data.highScore ?? data.score}`, {
+                fontFamily: 'Arial',
+                fontSize: '13px',
+                color: '#7F8C8D',
+            }).setOrigin(0.5);
+        }
 
         // ── Buttons ───────────────────────────────────────────────────────────
         const btnY = panelY + 172;
@@ -84,7 +93,7 @@ export class GameOver extends Scene {
         }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
 
         retryBtn.on('pointerdown', () => {
-            this.scene.start('Game', { levelIndex, modeId: mode.id });
+            this.scene.start('Game', mode.kind === 'endless' ? mode.createStartData() : { ...modeLevel.context, levelIndex, modeId: mode.id });
         });
         retryBtn.on('pointerover',  () => retryBtn.setStyle({ backgroundColor: '#F1948A' }));
         retryBtn.on('pointerout',   () => retryBtn.setStyle({ backgroundColor: mode.accent }));
