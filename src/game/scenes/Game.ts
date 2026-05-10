@@ -408,6 +408,8 @@ export class GameScene extends Scene {
     private shiftDaily(days: number): void {
         const dateKey = this.modeLevel.context.dateKey;
         if (!dateKey) return;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+
         const date = new Date(`${dateKey}T00:00:00.000Z`);
         date.setUTCDate(date.getUTCDate() + days);
         this.scene.restart({ modeId: this.mode.id, dateKey: date.toISOString().slice(0, 10) });

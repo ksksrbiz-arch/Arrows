@@ -24,7 +24,8 @@ function addDays(dateKey: string, days: number): string {
 
 function readDailyState(): DailyState {
     const state = readJson<DailyState>(DAILY_STATE_KEY, EMPTY_DAILY_STATE);
-    return { ...state, completed: Array.isArray(state.completed) ? state.completed.slice(-MAX_COMPLETED_HISTORY) : [] };
+    const completed = Array.isArray(state.completed) ? state.completed.slice(-MAX_COMPLETED_HISTORY) : [];
+    return { ...state, completed };
 }
 
 function writeDailyState(state: DailyState): void {

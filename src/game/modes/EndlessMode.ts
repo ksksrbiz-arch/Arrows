@@ -7,7 +7,8 @@ const HIGH_SCORE_KEY = storageKey('endless_high_score');
 const MAX_RANDOM_SEED_COMPONENT = 0xFFFFFF;
 
 function createRunSeed(): string {
-    return `${Date.now().toString(36)}-${Math.floor(Math.random() * MAX_RANDOM_SEED_COMPONENT).toString(36)}`;
+    return globalThis.crypto?.randomUUID?.()
+        ?? `${Date.now().toString(36)}-${Math.floor(Math.random() * MAX_RANDOM_SEED_COMPONENT).toString(36)}`;
 }
 
 function getDifficulty(level: number): { gridSize: number; density: number; tier: string } {

@@ -226,10 +226,10 @@ export class MainMenu extends Scene {
         const data = this.selectedMode.createStartData();
         const params = new URLSearchParams(window.location.search);
         if (this.selectedMode.id === 'daily' && params.get('date')) {
-            data.dateKey = params.get('date') ?? data.dateKey;
+            data.dateKey = params.get('date') as string;
         }
         if (this.selectedMode.id === 'endless' && params.get('seed')) {
-            data.seed = params.get('seed') ?? data.seed;
+            data.seed = params.get('seed') as string;
         }
         this.scene.start('Game', { ...data, modeId: this.selectedModeId });
     }
